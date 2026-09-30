@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel de Testes - API FreeOnlineStorage</title>
+    <title>Painel de Testes - API FreeOnlineStorage & Supabase</title>
 
     <!-- IMPORTAÇÃO DO VUE.JS 3 VIA CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -18,7 +18,7 @@
         }
 
         .container {
-            max-width: 600px;
+            max-width: 650px;
             margin: 40px auto;
             background: white;
             padding: 25px;
@@ -36,82 +36,90 @@
             font-weight: bold;
         }
 
-        .btn-get {
-            background-color: #007BFF;
-        }
+        .btn-get { background-color: #007BFF; }
+        .btn-post { background-color: #28a745; }
+        .btn-admin { background-color: #dc3545; }
 
-        .btn-post {
-            background-color: #28a745;
-        }
-
-        .btn-admin {
-            background-color: #dc3545;
-        }
-
-        input {
+        input, select {
             padding: 6px;
             margin-right: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
         }
 
-        pre {
-            background: #f4f4f4;
-            padding: 10px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
+        /* ESTILO MINIMALISTA PARA A LISTA DE ALUNOS */
+        .lista-minimalista {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0 0 0;
+            border-top: 1px solid #eee;
+        }
+
+        .item-lista {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 4px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .item-lista span:last-child {
+            color: #28a745;
+            font-weight: bold;
         }
     </style>
 </head>
 
 <body>
 
-    <!-- Onde o Vue vai "morar" -->
     <div id="app" class="container">
-        <h2>🎮 Painel de Testes: API FreeOnlineStorage</h2>
+        <h2>🎮 SENAICOINS</h2>
         <p><strong>Bucket:</strong> senai | <strong>Chave:</strong> coins</p>
 
         <hr style="margin: 20px 0;">
 
-        <!-- EXIBIÇÃO DAS MOEDAS (GET) -->
+        <!-- LISTAGEM DOS ALUNOS DO SUPABASE E SEUS PONTOS (GET) - MINIMALISTA -->
         <div>
-            <h3>📊 Saldo Atual dos Integrantes (GET)</h3>
-            <button @click="buscarMoedas" class="btn-get">Atualizar Tela (GET)</button>
-            <pre>{{ moedas }}</pre>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">📊 Saldo de SENAICOINS</h3>
+                <button @click="atualizarTudo" class="btn-get">Atualizar Dados</button>
+            </div>
+            
+            <div style="margin-top: 15px;">
+                <p v-if="alunosComCurriculo.length === 0" style="color: #666; font-size: 13px;">Carregando alunos do banco de dados...</p>
+                
+                <ul class="lista-minimalista">
+                    <li v-for="aluno in alunosComCurriculo" :key="aluno" class="item-lista">
+                        <span><strong>{{ aluno }}</strong></span>
+                        <span>{{ moedas[aluno] !== undefined ? moedas[aluno] : 0 }} moedas</span>
+                    </li>
+                </ul>
+            </div>
         </div>
 
         <hr style="margin: 20px 0;">
 
-        <!-- ATUALIZAÇÃO DE MOEDAS (POST)
-        <div>
-            <h3>⚙️ Modificar Moedas (POST)</h3>
-            <div style="margin-bottom: 10px;">
-                <label>Nome: </label>
-                <input v-model="nomeAluno" type="text" placeholder="Ex: Ana">
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label>Qtd a somar: </label>
-                <input v-model.number="quantidade" type="number">
-            </div>
-            <button @click="atualizarMoedas" class="btn-post">Adicionar Pontos (POST)</button>
-        </div> -->
-
-        <!-- ÁREA RESTRITA DO PROFESSOR (ALTERAR COM SENHA / ADMIN AUTH) -->
+        <!-- ÁREA RESTRITA DO PROFESSOR (ADMIN) -->
         <div style="margin-top: 20px; border-top: 2px solid #dc3545; padding-top: 15px; background: #fff8f8; padding: 15px; border-radius: 6px;">
-            <h3 style="color: #dc3545;">🔒 Área Restrita (Alteração de Pontos - Admin)</h3>
+            <h3 style="color: #dc3545;">🔒 Área Restrita (Admin)</h3>
             <div style="margin-bottom: 10px;">
                 <label>Senha Admin: </label>
-                <input v-model="adminAuth" type="password" placeholder="Digite a senha do .env">
+                <input v-model="adminAuth" type="password" placeholder="Senha do .env">
             </div>
             <div style="margin-bottom: 10px;">
-                <label>Nome: </label>
-                <input v-model="nomeAlunoAlterar" type="text" placeholder="Ex: Ana">
+                <label>Aluno: </label>
+                <select v-model="alunoAlterar">
+                    <option disabled value="">Escolha um aluno...</option>
+                    <option v-for="aluno in alunosComCurriculo" :value="aluno">{{ aluno }}</option>
+                </select>
             </div>
             <div style="margin-bottom: 10px;">
-                <label>Novo Valor Exato: </label>
-                <input v-model.number="valorExato" type="number" placeholder="Ex: 500">
+                <label>Novo Saldo Exato: </label>
+                <input v-model.number="valorExato" type="number">
             </div>
-            <button @click="alterarPontosDireto" class="btn-admin">Definir Valor Exato (Admin)</button>
+            <button @click="alterarPontosDireto" class="btn-admin">Definir Saldo Exato</button>
         </div>
 
         <!-- Feedback -->
@@ -128,17 +136,41 @@
                 const bucket = "senai"
                 const key = "coins"
 
-                const moedas = ref({})
-                const nomeAluno = ref("")
-                const quantidade = ref(0)
-                const mensagem = ref("")
-                
-                // Variáveis da Área Restrita
-                const nomeAlunoAlterar = ref("")
-                const valorExato = ref(0)
-                const adminAuth = ref("") // Guarda a senha digitada
+                const supabaseUrl = "https://eempgprspimlhzlofvjx.supabase.co"
+                const supabaseKey = "sb_publishable_H8eepB7xyJndr_TdsvuiVw_pJbsPC5k"
 
-                // 1. FUNÇÃO GET COM HEADERS
+                const alunosComCurriculo = ref([])
+                const moedas = ref({})
+                const mensagem = ref("")
+
+                const alunoAlterar = ref("")
+                const valorExato = ref(0)
+                const adminAuth = ref("")
+
+                // 1. Buscar alunos no Supabase
+                async function buscarAlunosSupabase() {
+                    try {
+                        const resposta = await fetch(`${supabaseUrl}/rest/v1/aluno?select=nome`, {
+                            method: "GET",
+                            headers: {
+                                "apikey": supabaseKey,
+                                "Authorization": `Bearer ${supabaseKey}`,
+                                "Accept": "application/json"
+                            }
+                        })
+
+                        if (resposta.ok) {
+                            const dados = await resposta.json()
+                            alunosComCurriculo.value = dados.map(item => item.nome)
+                        } else {
+                            console.error("Erro ao buscar alunos do Supabase")
+                        }
+                    } catch (erro) {
+                        console.error("Erro de conexão com o Supabase:", erro)
+                    }
+                }
+
+                // 2. Buscar moedas na API
                 async function buscarMoedas() {
                     try {
                         const resposta = await fetch(`${baseUrl}/getkey/${bucket}/${key}`, {
@@ -148,68 +180,66 @@
 
                         if (!resposta.ok) {
                             moedas.value = {}
-                            mensagem.value = "Nenhum dado encontrado ainda."
                             return
                         }
                         const dados = await resposta.json()
                         moedas.value = dados.value || {}
-                        mensagem.value = "Dados atualizados com sucesso via GET!"
                     } catch (erro) {
                         console.error("Erro no GET:", erro)
-                        mensagem.value = "Erro ao buscar dados da API."
                     }
                 }
 
-                // 2. FUNÇÃO POST PARA ADICIONAR (SOMAR)
-                async function atualizarMoedas() {
-                    if (!nomeAluno.value) {
-                        alert("Digite o nome do aluno!")
-                        return
-                    }
-
+                // 3. Sincronizar: Se o aluno do Supabase não estiver na API, cadastra com 0
+                async function sincronizarAlunosNaApi() {
                     let dadosAtuais = { ...moedas.value }
-                    let saldoAtual = Number(dadosAtuais[nomeAluno.value]) || 0
-                    dadosAtuais[nomeAluno.value] = saldoAtual + Number(quantidade.value)
+                    let houveAlteracao = false
 
-                    try {
-                        const resposta = await fetch(`${baseUrl}/`, {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "Accept": "application/json"
-                            },
-                            body: JSON.stringify({
-                                bucket: bucket,
-                                key: key,
-                                value: dadosAtuais
-                            })
-                        })
-
-                        if (resposta.ok) {
-                            mensagem.value = `Sucesso! Adicionado ${quantidade.value} para ${nomeAluno.value} via POST.`
-                            await buscarMoedas()
-                        } else {
-                            mensagem.value = "Erro ao salvar na API."
+                    // Varre todos os alunos que vieram do Supabase
+                    for (const aluno of alunosComCurriculo.value) {
+                        // Se o aluno ainda não existe na chave coins da API
+                        if (dadosAtuais[aluno] === undefined) {
+                            dadosAtuais[aluno] = 0 // Define 0 como padrão
+                            houveAlteracao = true
                         }
-                    } catch (erro) {
-                        console.error("Erro no POST:", erro)
-                        mensagem.value = "Erro de conexão ao salvar."
+                    }
+
+                    // Se encontrou algum aluno novo que não estava na API, faz o POST para salvar
+                    if (houveAlteracao) {
+                        try {
+                            await fetch(`${baseUrl}/`, {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "Accept": "application/json"
+                                },
+                                body: JSON.stringify({ bucket, key, value: dadosAtuais })
+                            })
+                            // Atualiza localmente após salvar
+                            moedas.value = dadosAtuais
+                        } catch (erro) {
+                            console.error("Erro ao sincronizar novos alunos na API:", erro)
+                        }
                     }
                 }
 
-                // 3. FUNÇÃO POST PROTEGIDA COM ADMIN-AUTH
+                // Fluxo completo de atualização
+                async function atualizarTudo() {
+                    mensagem.value = "Sincronizando com Supabase e API..."
+                    await buscarAlunosSupabase()
+                    await buscarMoedas()
+                    await sincronizarAlunosNaApi()
+                    mensagem.value = "Dados atualizados com sucesso!"
+                }
+
+                // Função de admin para alterar pontos exatos
                 async function alterarPontosDireto() {
-                    if (!adminAuth.value) {
-                        alert("Acesso negado! Digite a senha de Administrador.")
-                        return
-                    }
-                    if (!nomeAlunoAlterar.value) {
-                        alert("Digite o nome do aluno!")
+                    if (!adminAuth.value || !alunoAlterar.value) {
+                        alert("Preencha a senha de admin e selecione o aluno!")
                         return
                     }
 
                     let dadosAtuais = { ...moedas.value }
-                    dadosAtuais[nomeAlunoAlterar.value] = Number(valorExato.value)
+                    dadosAtuais[alunoAlterar.value] = Number(valorExato.value)
 
                     try {
                         const resposta = await fetch(`${baseUrl}/`, {
@@ -217,42 +247,34 @@
                             headers: {
                                 "Content-Type": "application/json",
                                 "Accept": "application/json",
-                                "admin-auth": adminAuth.value // Enviando a senha no header exigido pela API
+                                "admin-auth": adminAuth.value
                             },
-                            body: JSON.stringify({
-                                bucket: bucket,
-                                key: key,
-                                value: dadosAtuais
-                            })
+                            body: JSON.stringify({ bucket, key, value: dadosAtuais })
                         })
 
                         if (resposta.ok) {
-                            mensagem.value = `Sucesso (Admin)! O saldo de ${nomeAlunoAlterar.value} foi alterado para ${valorExato.value}.`
+                            mensagem.value = `Saldo de ${alunoAlterar.value} alterado para ${valorExato.value} (Admin).`
                             await buscarMoedas()
                         } else {
-                            mensagem.value = "Erro: Senha de Admin inválida ou falha na API."
+                            mensagem.value = "Senha de Admin inválida ou erro na API."
                         }
                     } catch (erro) {
                         console.error("Erro no POST protegido:", erro)
-                        mensagem.value = "Erro de conexão ao alterar."
                     }
                 }
 
-                // Executa o GET ao carregar a página
-                onMounted(() => {
-                    buscarMoedas()
+                onMounted(async () => {
+                    await atualizarTudo()
                 })
 
                 return {
+                    alunosComCurriculo,
                     moedas,
-                    nomeAluno,
-                    quantidade,
                     mensagem,
-                    nomeAlunoAlterar,
+                    alunoAlterar,
                     valorExato,
                     adminAuth,
-                    buscarMoedas,
-                    atualizarMoedas,
+                    atualizarTudo,
                     alterarPontosDireto
                 }
             }
