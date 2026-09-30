@@ -106,7 +106,7 @@
             <h3 style="color: #dc3545;">🔒 Área Restrita (Admin)</h3>
             <div style="margin-bottom: 10px;">
                 <label>Senha Admin: </label>
-                <input v-model="adminAuth" type="password" placeholder="Senha do .env">
+                <input v-model="adminAuth" type="password" placeholder="Senha secreta do professor">
             </div>
             <div style="margin-bottom: 10px;">
                 <label>Aluno: </label>
@@ -145,7 +145,7 @@
 
                 const alunoAlterar = ref("")
                 const valorExato = ref(0)
-                const adminAuth = ref("{{ config('app.admin_password') }}")
+                const adminAuth = ref("")
 
                 // 1. Buscar alunos no Supabase
                 async function buscarAlunosSupabase() {
@@ -194,18 +194,16 @@
                     let dadosAtuais = { ...moedas.value }
                     let houveAlteracao = false
 
-                    // Varre todos os alunos que vieram do Supabase
                     for (const aluno of alunosComCurriculo.value) {
-                        // Se o aluno ainda não existe na chave coins da API
                         if (dadosAtuais[aluno] === undefined) {
-                            dadosAtuais[aluno] = 0 // Define 0 como padrão
+                            dadosAtuais[aluno] = 0
                             houveAlteracao = true
                         }
                     }
 
-                    // Se encontrou algum aluno novo que não estava na API, faz o POST para salvar
                     if (houveAlteracao) {
                         try {
+                            // Sincronização automática usa a API direto (sem senha de admin estrita se for apenas preencher novos alunos)
                             await fetch(`${baseUrl}/`, {
                                 method: "POST",
                                 headers: {
@@ -214,7 +212,6 @@
                                 },
                                 body: JSON.stringify({ bucket, key, value: dadosAtuais })
                             })
-                            // Atualiza localmente após salvar
                             moedas.value = dadosAtuais
                         } catch (erro) {
                             console.error("Erro ao sincronizar novos alunos na API:", erro)
@@ -231,7 +228,7 @@
                     mensagem.value = "Dados atualizados com sucesso!"
                 }
 
-                // Função de admin para alterar pontos exatos
+                // Função de admin protegida pela rota do Vercel
                 async function alterarPontosDireto() {
                     if (!adminAuth.value || !alunoAlterar.value) {
                         alert("Preencha a senha de admin e selecione o aluno!")
@@ -242,24 +239,30 @@
                     dadosAtuais[alunoAlterar.value] = Number(valorExato.value)
 
                     try {
-                        const resposta = await fetch(`${baseUrl}/`, {
+                        // Envia para a Serverless Function do Vercel verificar a senha no .env com segurança
+                        const resposta = await fetch('/api/salvar', {
                             method: "POST",
                             headers: {
                                 "Content-Type": "application/json",
-                                "Accept": "application/json",
-                                "admin-auth": adminAuth.value
+                                "Accept": "application/json"
                             },
-                            body: JSON.stringify({ bucket, key, value: dadosAtuais })
+                            body: JSON.stringify({ 
+                                senhaDigitada: adminAuth.value, 
+                                bucket, 
+                                key, 
+                                value: dadosAtuais 
+                            })
                         })
 
                         if (resposta.ok) {
                             mensagem.value = `Saldo de ${alunoAlterar.value} alterado para ${valorExato.value} (Admin).`
                             await buscarMoedas()
                         } else {
-                            mensagem.value = "Senha de Admin inválida ou erro na API."
+                            mensagem.value = "Senha de Admin incorreta ou acesso negado pelo servidor!"
                         }
                     } catch (erro) {
-                        console.error("Erro no POST protegido:", erro)
+                        console.error("Erro no POST seguro:", erro)
+                        mensagem.value = "Erro de conexão com a API de segurança."
                     }
                 }
 
