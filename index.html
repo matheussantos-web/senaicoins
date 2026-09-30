@@ -145,7 +145,7 @@
 
                 const alunoAlterar = ref("")
                 const valorExato = ref(0)
-                const adminAuth = ref("")
+                const adminAuth = ref("{{ config('app.admin_password') }}")
 
                 // 1. Buscar alunos no Supabase
                 async function buscarAlunosSupabase() {
