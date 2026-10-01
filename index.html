@@ -1,326 +1,596 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SENAICOINS - S-Coin - Painel do Professor</title>
-
-    <!-- FAVICON S-COIN estilo USDC -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23004B87'/><circle cx='50' cy='50' r='43' fill='none' stroke='white' stroke-width='3' opacity='0.35'/><text x='50' y='68' font-size='54' font-family='Segoe UI,Arial,sans-serif' font-weight='900' text-anchor='middle' fill='white'>S</text></svg>">
-
-    <!-- Tailwind CSS via CDN -->
+    <title>SENAI Coins | Loja Oficial</title>
+    
+    <!-- Tailwind para CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonte Inter do Google -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons para ícones modernos -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Configuração de Tema do Tailwind -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
-                        firjan: { blue: '#004B87', dark: '#002D5A' },
-                        senai:  { red: '#D9381E' }
+                        senai: { red: '#ED1C24', dark: '#111111', hover: '#C4151C' }
                     }
                 }
             }
         }
     </script>
 
-    <!-- Vue.js 3 via CDN -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-
     <style>
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .spin { display: inline-block; animation: spin 0.8s linear infinite; }
+        /* Esconde a barra de rolagem mas mantém funcionando */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Animação para os Toasts (Notificações) */
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast-enter { animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        
+        /* Animação de Pulse para carregamento (Skeleton) */
+        .skeleton {
+            background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+            background-size: 200% 100%;
+            animation: pulse 1.5s infinite linear;
+        }
+        @keyframes pulse { to { background-position: -200% 0; } }
     </style>
 </head>
+<body class="bg-slate-50 font-sans text-slate-800 flex flex-col min-h-screen">
 
-<body class="bg-slate-100 min-h-screen py-8 px-4 font-sans antialiased">
-    <div id="app" class="max-w-xl mx-auto flex flex-col gap-5">
-
-        <!-- CABECALHO INSTITUCIONAL FIRJAN SENAI -->
-        <header class="flex items-center gap-4 px-5 py-4 rounded-xl border-b-4 border-senai-red"
-                style="background: linear-gradient(135deg, #002D5A 0%, #004B87 100%);">
-            <!-- Icone S-Coin estilo USDC -->
-            <div class="rounded-full border-[3px] border-white/50 flex items-center justify-center flex-shrink-0 ring-4 ring-white/10"
-                 style="width:52px;height:52px;background:#004B87;">
-                <span class="text-white font-black text-2xl leading-none">S</span>
+    <!-- Tela de Login (Ocupa a tela toda por cima da loja) -->
+    <div id="login-overlay" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-4 transition-opacity duration-500">
+        <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center">
+            <div class="w-16 h-16 bg-senai-red rounded-2xl flex items-center justify-center text-white font-bold text-3xl shadow-lg shadow-senai-red/30 mx-auto mb-6">
+                <i class="ph-bold ph-student"></i>
             </div>
-            <div class="flex-1">
-                <h1 class="text-white font-extrabold text-xl tracking-wide">SENAICOINS</h1>
-                <p class="text-white/70 text-xs mt-0.5">Painel do Professor - Atribuicao de S-Coins</p>
-            </div>
-            <span class="text-[11px] font-bold tracking-widest uppercase text-white/80 bg-white/10 border border-white/20 px-3 py-1 rounded-full self-start">
-                FIRJAN SENAI
-            </span>
-        </header>
-
-        <!-- SECAO: LISTA DE ALUNOS -->
-        <div class="bg-white border border-slate-200 rounded-xl p-5">
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-widest flex items-center gap-2" style="color:#004B87">
-                    Alunos
-                    <span class="bg-blue-50 border border-blue-200 text-[11px] font-bold px-2 py-0.5 rounded-full" style="color:#004B87">
-                        {{ alunosComCurriculo.length }}
-                    </span>
-                </span>
-                <button @click="atualizarTudo" :disabled="carregando"
-                        class="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 transition disabled:opacity-50" style="color:#004B87">
-                    <span :class="{ spin: carregando }">&#x1F504;</span>
-                    {{ carregando ? 'Sincronizando...' : 'Atualizar' }}
+            <h2 class="text-2xl font-bold text-slate-900 mb-2">Bem-vindo(a) à Loja!</h2>
+            <p class="text-slate-500 mb-8">Por favor, insira sua matrícula para acessar seus SENAI Coins.</p>
+            
+            <form id="login-form" onsubmit="event.preventDefault(); realizarLogin();" class="flex flex-col gap-4">
+                <input type="text" id="input-matricula" placeholder="Digite seu Nome (ex: João Silva)" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-senai-red focus:ring-2 focus:ring-senai-red/20 outline-none transition-all text-center text-lg font-medium">
+                <button type="submit" class="w-full bg-senai-red hover:bg-senai-hover text-white py-3 rounded-xl font-bold text-lg transition-colors flex justify-center items-center gap-2">
+                    Entrar na Loja <i class="ph-bold ph-arrow-right"></i>
                 </button>
-            </div>
-
-            <!-- Busca -->
-            <div class="relative mb-3">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">&#x1F50D;</span>
-                <input v-model="termoBusca" type="text" placeholder="Filtrar aluno por nome..."
-                       class="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:bg-white transition" style="color:#1A2940">
-            </div>
-
-            <!-- Lista -->
-            <div class="border border-slate-200 rounded-lg max-h-72 overflow-y-auto">
-                <p v-if="alunosComCurriculo.length === 0" class="p-5 text-center text-sm text-slate-400">Carregando alunos...</p>
-                <p v-else-if="alunosFiltrados.length === 0" class="p-5 text-center text-sm text-slate-400">Nenhum aluno encontrado para "{{ termoBusca }}".</p>
-                <ul v-else class="divide-y divide-slate-100">
-                    <li v-for="aluno in alunosFiltrados" :key="aluno"
-                        @click="selecionarAluno(aluno)"
-                        :class="['flex items-center justify-between px-4 py-2.5 text-sm cursor-pointer transition', alunoAlterar === aluno ? 'bg-blue-50 border-l-[3px]' : 'hover:bg-slate-50']"
-                        :style="alunoAlterar === aluno ? 'border-left-color:#004B87' : ''">
-                        <div class="flex items-center gap-2">
-                            <span class="font-medium text-slate-800">{{ aluno }}</span>
-                            <span v-if="alunoAlterar === aluno"
-                                  class="text-[10px] font-bold text-white px-2 py-0.5 rounded-full" style="background:#004B87">
-                                Selecionado
-                            </span>
-                        </div>
-                        <span class="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-xs font-bold px-2.5 py-1 rounded-full" style="color:#004B87">
-                            <span class="w-4 h-4 rounded-full flex items-center justify-center text-white font-black text-[9px] flex-shrink-0" style="background:#004B87">S</span>
-                            {{ moedas[aluno] !== undefined ? moedas[aluno] : 0 }} S-Coins
-                        </span>
-                    </li>
-                </ul>
-            </div>
-            <p class="text-[11px] text-slate-400 text-center mt-2">Clique sobre um aluno para selecioná-lo e pontuar.</p>
+            </form>
         </div>
-
-        <!-- SECAO: AREA DO PROFESSOR -->
-        <div class="bg-white border border-red-200 rounded-xl p-5">
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" style="color:#D9381E">
-                    Área do Professor
-                </span>
-                <label class="flex items-center gap-1.5 text-xs text-slate-500 cursor-pointer select-none">
-                    <input type="checkbox" v-model="lembrarSenha" @change="salvarSenhaSeNecessario" class="rounded">
-                    Lembrar senha
-                </label>
-            </div>
-
-            <input v-model="adminAuth" type="password" placeholder="Digite a senha do professor..."
-                   class="w-full px-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:bg-white transition"
-                   @input="salvarSenhaSeNecessario">
-            <div v-if="mensagem"
-                 :class="['flex items-center justify-between gap-2 px-4 py-3 mt-2 rounded-xl text-sm font-semibold',
-                     tipoMensagem === 'sucesso' ? 'bg-green-50 border border-green-200 text-green-800' :
-                     tipoMensagem === 'erro'    ? 'bg-red-50 border border-red-200 text-red-800' :
-                                                 'bg-blue-50 border border-blue-200 text-blue-800']"
-                 :role="tipoMensagem === 'erro' ? 'alert' : 'status'">
-                <div class="flex items-center gap-2">
-                    <span>{{ tipoMensagem === 'sucesso' ? 'OK' : tipoMensagem === 'erro' ? 'ERRO' : 'INFO' }}</span>
-                    <span>{{ mensagem }}</span>
-                </div>
-                <button @click="mensagem = ''" class="opacity-50 hover:opacity-100 font-bold text-base leading-none" aria-label="Fechar mensagem">&times;</button>
-            </div>
-
-            <!-- Painel aluno selecionado -->
-            <div v-if="alunoAlterar" class="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4">
-                <div class="flex items-start justify-between pb-3 border-b border-slate-200 mb-4">
-                    <div>
-                        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Aluno Selecionado</div>
-                        <div class="font-bold text-slate-900">{{ alunoAlterar }}</div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Saldo Atual</div>
-                        <div class="font-extrabold flex items-center gap-1.5 justify-end" style="color:#004B87">
-                            <span class="w-[18px] h-[18px] rounded-full flex items-center justify-center text-white font-black text-[9px]" style="background:#004B87">S</span>
-                            {{ moedas[alunoAlterar] !== undefined ? moedas[alunoAlterar] : 0 }} S-Coins
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Chips rapidos -->
-                <div class="mb-4">
-                    <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Pontuacao rapida:</div>
-                    <div class="flex flex-wrap gap-2">
-                        <button v-for="qtd in [5, 10, 20, 50]" :key="qtd"
-                                @click="aplicarOperacao('somar', qtd)" :disabled="carregando"
-                                class="px-3 py-1.5 rounded-full text-xs font-bold border bg-white transition active:scale-95 disabled:opacity-50 hover:text-white"
-                                style="border-color:#004B87;color:#004B87"
-                                onmouseover="this.style.background='#004B87'"
-                                onmouseout="this.style.background='white'">
-                            +{{ qtd }} S-Coins
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Quantidade personalizada -->
-                <div class="pt-3 border-t border-dashed border-slate-200">
-                    <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Outra quantidade:</div>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <input v-model.number="quantidadePontos" type="number" min="1" placeholder="10"
-                               class="w-20 px-3 py-2 text-sm font-bold text-center bg-white border border-slate-200 rounded-lg focus:outline-none">
-                        <button @click="aplicarOperacao('somar')" :disabled="carregando"
-                                class="flex-1 flex items-center justify-center gap-1 px-4 py-2 text-xs font-bold rounded-lg text-white bg-green-600 hover:bg-green-700 transition active:scale-95 disabled:opacity-50">
-                            + Adicionar {{ quantidadePontos || 0 }}
-                        </button>
-                        <button @click="aplicarOperacao('subtrair')" :disabled="carregando"
-                                class="flex-1 flex items-center justify-center gap-1 px-4 py-2 text-xs font-bold rounded-lg text-white bg-amber-600 hover:bg-amber-700 transition active:scale-95 disabled:opacity-50">
-                            - Remover {{ quantidadePontos || 0 }}
-                        </button>
-                        <button @click="zerarPontos" :disabled="carregando"
-                                class="px-3 py-2 text-xs font-semibold rounded-lg border hover:bg-red-50 transition active:scale-95 disabled:opacity-50" style="border-color:#D9381E;color:#D9381E">
-                            Zerar
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Estado vazio -->
-            <div v-else class="mt-4 text-center py-5 px-4 border border-dashed border-slate-200 rounded-xl text-sm text-slate-400">
-                <strong class="text-slate-500">Clique em um aluno na lista acima</strong> para pontuar.
-            </div>
-        </div>
-
     </div>
 
+    <header class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-40 border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex justify-between items-center">
+            
+            <!-- Logo -->
+            <div class="flex items-center gap-3 cursor-pointer">
+                <div class="w-10 h-10 bg-senai-red rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-senai-red/30">
+                    <i class="ph-bold ph-student"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900 leading-tight">SENAI Coins</h1>
+                    <p class="text-xs text-slate-500 font-medium">Loja de Recompensas</p>
+                </div>
+            </div>
+            
+            <!-- Painel do Aluno -->
+            <div class="flex items-center gap-4">
+                <!-- Botão de Logout -->
+                <button onclick="fazerLogout()" id="btn-logout" class="hidden text-sm font-bold text-slate-400 hover:text-senai-red underline transition-colors">
+                    Sair
+                </button>
+                
+                <!-- Mostrador de Saldo -->
+                <div class="bg-slate-100 px-4 py-2 rounded-xl flex items-center gap-2 border border-slate-200 transition-all hover:bg-slate-200">
+                    <i class="ph-fill ph-coin text-yellow-500 text-xl"></i>
+                    <div class="flex flex-col">
+                        <span class="text-[10px] uppercase font-bold text-slate-400 leading-none">Seu Saldo</span>
+                        <span id="saldo-display" class="text-sm font-bold text-slate-800">...</span>
+                    </div>
+                </div>
+
+                <!-- Botão do Carrinho -->
+                <button onclick="toggleCarrinho()" class="relative p-2 text-slate-600 hover:text-senai-red transition-colors">
+                    <i class="ph ph-shopping-cart text-2xl"></i>
+                    <!-- Badge de quantidade no carrinho -->
+                    <span id="cart-badge" class="absolute top-0 right-0 bg-senai-red text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center hidden border-2 border-white">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        <div class="flex justify-between items-end mb-8">
+            <div>
+                <h2 class="text-2xl font-bold text-slate-900">Recompensas em Destaque</h2>
+                <p class="text-slate-500 mt-1">Invista no seu futuro trocando seus pontos por conhecimento e itens.</p>
+            </div>
+        </div>
+        
+        <!-- GRID DE PRODUTOS: Será preenchido pelo JavaScript -->
+        <div id="produtos-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Esqueletos de carregamento (mostrados antes da API responder) -->
+            <article class="bg-white rounded-2xl p-4 h-80 skeleton border border-slate-100"></article>
+            <article class="bg-white rounded-2xl p-4 h-80 skeleton border border-slate-100"></article>
+            <article class="bg-white rounded-2xl p-4 h-80 skeleton border border-slate-100"></article>
+            <article class="bg-white rounded-2xl p-4 h-80 skeleton border border-slate-100"></article>
+        </div>
+    </main>
+
+    <!-- Fundo escuro quando o carrinho abre -->
+    <div id="carrinho-overlay" onclick="toggleCarrinho()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden transition-opacity opacity-0"></div>
+    
+    <!-- Gaveta do Carrinho -->
+    <aside id="carrinho-drawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+        
+        <!-- Header do Carrinho -->
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <h2 class="text-xl font-bold flex items-center gap-2">
+                <i class="ph ph-shopping-bag"></i> Seu Carrinho
+            </h2>
+            <button onclick="toggleCarrinho()" class="p-2 hover:bg-slate-200 rounded-full transition-colors">
+                <i class="ph ph-x text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Itens do Carrinho -->
+        <div id="carrinho-items" class="flex-grow p-6 overflow-y-auto no-scrollbar flex flex-col gap-4">
+            <!-- Preenchido pelo JS -->
+            <div class="text-center text-slate-400 mt-10">
+                <i class="ph ph-shopping-cart text-5xl mb-3 opacity-50"></i>
+                <p>Seu carrinho está vazio.</p>
+            </div>
+        </div>
+
+        <!-- Footer do Carrinho (Total e Botão de Compra) -->
+        <div class="p-6 border-t border-slate-100 bg-white">
+            <div class="flex justify-between items-center mb-6">
+                <span class="text-slate-500 font-medium">Total a pagar:</span>
+                <span id="carrinho-total" class="text-2xl font-bold text-senai-red">0 pts</span>
+            </div>
+            <button id="btn-finalizar" onclick="finalizarCompra()" class="w-full bg-senai-red hover:bg-senai-hover text-white py-4 rounded-xl font-bold text-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                Confirmar Resgate
+            </button>
+        </div>
+    </aside>
+
+    <!-- Container de Notificações (Toasts) -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
+
     <script>
-        const { createApp, ref, computed, onMounted } = Vue
+        /**
+         * 1. CONFIGURAÇÕES E ESTADO GLOBAL
+         * Em aplicações Sênior, mantemos o estado da aplicação em variáveis claras.
+         */
+        
+        const state = {
+            saldo: 0,
+            carrinho: [], // Guarda os IDs e quantidades
+            isCarregando: false,
+            matricula: null // NOVO: Guarda quem é o aluno logado
+        };
 
-        createApp({
-            setup() {
-                const baseUrl = "https://onlinestorage.you.tec.br/api"
-                const bucket = "senai"
-                const key = "coins"
-                const supabaseUrl = "https://eempgprspimlhzlofvjx.supabase.co"
-                const supabaseKey = "sb_publishable_H8eepB7xyJndr_TdsvuiVw_pJbsPC5k"
+        // NOVO: Configurações do "Banco Central" (Exatamente igual ao do Professor)
+        const API_CONFIG = {
+            baseUrl: 'https://onlinestorage.you.tec.br/api',
+            bucket: 'senai',
+            key: 'coins'
+        };
 
-                const alunosComCurriculo = ref([])
-                const moedas = ref({})
-                const termoBusca = ref("")
-                const alunoAlterar = ref("")
-                const quantidadePontos = ref(10)
-                const adminAuth = ref("")
-                const lembrarSenha = ref(false)
-                const carregando = ref(false)
-                const mensagem = ref("")
-                const tipoMensagem = ref("info")
-                let timerMensagem = null
+        function getApiUrlGet() {
+            return `${API_CONFIG.baseUrl}/getkey/${API_CONFIG.bucket}/${API_CONFIG.key}`;
+        }
 
-                function exibirMensagem(texto, tipo = "info") {
-                    mensagem.value = texto
-                    tipoMensagem.value = tipo
-                    if (timerMensagem) clearTimeout(timerMensagem)
-                    if (tipo === "sucesso") {
-                        timerMensagem = setTimeout(() => { if (mensagem.value === texto) mensagem.value = "" }, 4000)
+        // Simulação de um Banco de Dados de Produtos
+        // Na vida real, isso também viria de um GET em uma API de produtos.
+        const bancoDeProdutos = [
+            { id: 1, nome: "Camiseta Oficial SENAI", preco: 150, img: "https://placehold.co/600x400/ED1C24/FFF?text=Camiseta", cat: "Vestuário", icone: "ph-t-shirt" },
+            { id: 2, nome: "Curso AWS Cloud Practitioner", preco: 500, img: "https://placehold.co/600x400/232F3E/FFF?text=AWS", cat: "Cursos", icone: "ph-cloud" },
+            { id: 3, nome: "Garrafa Térmica Tech", preco: 120, img: "https://placehold.co/600x400/111111/FFF?text=Garrafa", cat: "Acessórios", icone: "ph-drop" },
+            { id: 4, nome: "Mousepad Extra Grande", preco: 80, img: "https://placehold.co/600x400/4B5563/FFF?text=Mousepad", cat: "Setup", icone: "ph-mouse" },
+            { id: 5, nome: "Mentoria de Carreira (1h)", preco: 300, img: "https://placehold.co/600x400/8B5CF6/FFF?text=Mentoria", cat: "Serviços", icone: "ph-chalkboard-teacher" },
+            { id: 6, nome: "Caderno Inteligente", preco: 90, img: "https://placehold.co/600x400/10B981/FFF?text=Caderno", cat: "Papelaria", icone: "ph-book-open" }
+        ];
+
+        /**
+         * STREAMING_CHUNK: Comunicação com a API (Back-end)...
+         * 2. INTEGRAÇÃO COM API
+         */
+
+        // MÉTDO GET: Busca o saldo
+        async function fetchSaldo() {
+            const display = document.getElementById('saldo-display');
+            display.innerText = 'Carregando...';
+            
+            try {
+                // 1. Vai no Banco Central buscar a lista inteira de todos os alunos
+                const response = await fetch(getApiUrlGet());
+                
+                if (!response.ok) {
+                    state.saldo = 0;
+                    atualizarUIMostradorSaldo();
+                    return;
+                }
+                
+                const data = await response.json();
+                const todosOsAlunos = data.value || {};
+                
+                // NOVA LÓGICA: Busca Case-Insensitive (Ignora Maiúsculas/Minúsculas)
+                // Pega o que o aluno digitou, tira espaços sobrando (trim) e deixa tudo minúsculo (toLowerCase)
+                const nomeDigitado = state.matricula.trim().toLowerCase();
+                
+                let nomeRealNoBanco = null;
+                let saldoEncontrado = 0;
+
+                // Percorre a lista do cofre do professor (Banco)
+                for (const nomeDoAlunoNoBanco in todosOsAlunos) {
+                    // Deixa o nome do banco minúsculo para comparar
+                    if (nomeDoAlunoNoBanco.trim().toLowerCase() === nomeDigitado) {
+                        nomeRealNoBanco = nomeDoAlunoNoBanco; // Achamos! Guarda o nome com a formatação oficial
+                        saldoEncontrado = Number(todosOsAlunos[nomeDoAlunoNoBanco]);
+                        break; // Para de procurar, já achou.
                     }
                 }
 
-                function carregarSenhaSalva() {
-                    try {
-                        const salva = localStorage.getItem("senaicoins_admin_auth")
-                        if (salva) { adminAuth.value = salva; lembrarSenha.value = true }
-                    } catch (e) {}
+                if (nomeRealNoBanco) {
+                    // Sucesso! Atualiza nossa "memória" para usar o nome oficial do banco nas próximas vezes
+                    state.matricula = nomeRealNoBanco; 
+                    localStorage.setItem('@SenaiCoins:matricula', nomeRealNoBanco); // Salva certinho
+                    state.saldo = saldoEncontrado;
+                } else {
+                    // Se não achou na lista do professor, o saldo é 0 mesmo
+                    state.saldo = 0;
+                    showToast('Conta Nova', 'Você ainda não recebeu pontos do professor.', 'info');
                 }
-
-                function salvarSenhaSeNecessario() {
-                    try {
-                        if (lembrarSenha.value && adminAuth.value) localStorage.setItem("senaicoins_admin_auth", adminAuth.value)
-                        else if (!lembrarSenha.value) localStorage.removeItem("senaicoins_admin_auth")
-                    } catch (e) {}
-                }
-
-                const alunosFiltrados = computed(() => {
-                    const t = termoBusca.value.trim().toLowerCase()
-                    if (!t) return alunosComCurriculo.value
-                    return alunosComCurriculo.value.filter(a => a.toLowerCase().includes(t))
-                })
-
-                function selecionarAluno(aluno) { alunoAlterar.value = aluno }
-
-                async function buscarAlunosSupabase() {
-                    try {
-                        const r = await fetch(supabaseUrl + "/rest/v1/aluno?select=nome", {
-                            headers: { "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey, "Accept": "application/json" }
-                        })
-                        if (r.ok) { const d = await r.json(); alunosComCurriculo.value = d.map(i => i.nome) }
-                    } catch (e) { console.error(e) }
-                }
-
-                async function buscarMoedas() {
-                    try {
-                        const r = await fetch(baseUrl + "/getkey/" + bucket + "/" + key, { headers: { "Accept": "application/json" } })
-                        if (!r.ok) { moedas.value = {}; return }
-                        const d = await r.json(); moedas.value = d.value || {}
-                    } catch (e) { console.error(e) }
-                }
-
-                async function sincronizarAlunosNaApi() {
-                    let dados = { ...moedas.value }; let alt = false
-                    for (const a of alunosComCurriculo.value) { if (dados[a] === undefined) { dados[a] = 0; alt = true } }
-                    if (alt) {
-                        try {
-                            await fetch(baseUrl + "/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bucket, key, value: dados }) })
-                            moedas.value = dados
-                        } catch (e) {}
-                    }
-                }
-
-                async function atualizarTudo() {
-                    carregando.value = true; exibirMensagem("Sincronizando...", "info")
-                    await buscarAlunosSupabase(); await buscarMoedas(); await sincronizarAlunosNaApi()
-                    exibirMensagem("Dados atualizados!", "sucesso"); carregando.value = false
-                }
-
-                async function aplicarOperacao(tipo, valorAtalho = null) {
-                    if (!adminAuth.value) { exibirMensagem("Preencha a senha do professor!", "erro"); return }
-                    if (!alunoAlterar.value) { exibirMensagem("Selecione um aluno primeiro!", "erro"); return }
-                    const valor = valorAtalho !== null ? Number(valorAtalho) : Number(quantidadePontos.value)
-                    if (isNaN(valor) || valor <= 0) { exibirMensagem("Quantidade invalida!", "erro"); return }
-                    carregando.value = true; exibirMensagem("Atualizando saldo...", "info")
-                    try {
-                        await buscarMoedas()
-                        let dados = { ...moedas.value }
-                        const atual = Number(dados[alunoAlterar.value] || 0)
-                        const novo = tipo === 'somar' ? atual + valor : Math.max(0, atual - valor)
-                        dados[alunoAlterar.value] = novo
-                        const r = await fetch('/api/salvar', { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ senhaDigitada: adminAuth.value, bucket, key, value: dados }) })
-                        if (r.ok) {
-                            salvarSenhaSeNecessario(); moedas.value = dados
-                            const d = novo - atual
-                            exibirMensagem(alunoAlterar.value + ": " + novo + " S-Coins (" + (d > 0 ? "+" : "") + d + ")", "sucesso")
-                        } else { const err = await r.json().catch(() => ({})); exibirMensagem(err.erro || "Senha incorreta!", "erro") }
-                    } catch (e) { exibirMensagem("Erro de conexao.", "erro") }
-                    finally { carregando.value = false }
-                }
-
-                async function zerarPontos() {
-                    if (!confirm('Zerar S-Coins de "' + alunoAlterar.value + '"?')) return
-                    if (!adminAuth.value) { exibirMensagem("Preencha a senha!", "erro"); return }
-                    carregando.value = true; exibirMensagem("Zerando saldo...", "info")
-                    try {
-                        await buscarMoedas()
-                        let dados = { ...moedas.value }; dados[alunoAlterar.value] = 0
-                        const r = await fetch('/api/salvar', { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ senhaDigitada: adminAuth.value, bucket, key, value: dados }) })
-                        if (r.ok) { salvarSenhaSeNecessario(); moedas.value = dados; exibirMensagem(alunoAlterar.value + " zerado!", "sucesso") }
-                        else { const err = await r.json().catch(() => ({})); exibirMensagem(err.erro || "Senha incorreta!", "erro") }
-                    } catch (e) { exibirMensagem("Erro de conexao.", "erro") }
-                    finally { carregando.value = false }
-                }
-
-                onMounted(async () => { carregarSenhaSalva(); await atualizarTudo() })
-
-                return { alunosComCurriculo, alunosFiltrados, moedas, termoBusca, alunoAlterar, quantidadePontos, adminAuth, lembrarSenha, carregando, mensagem, tipoMensagem, selecionarAluno, salvarSenhaSeNecessario, atualizarTudo, aplicarOperacao, zerarPontos }
+                
+                atualizarUIMostradorSaldo();
+                
+            } catch (error) {
+                console.error(error);
+                display.innerText = '0 pts';
+                state.saldo = 0;
+                // Mudamos de erro para um aviso amigável
+                showToast('Carteira Zerada', 'Você ainda não possui pontos no sistema.', 'info');
             }
-        }).mount('#app')
+        }
+
+        // MÉTODO POST: Atualiza o saldo no banco de dados (Subtração)
+        async function processarTransacaoAPI(novoSaldo) {
+            try {
+                // PASSO 1: Baixar a lista mais recente do cofre central.
+                // Fazemos isso para não apagarmos por acidente os pontos de outros alunos!
+                const resGet = await fetch(getApiUrlGet());
+                let todosOsAlunos = {};
+                
+                if (resGet.ok) {
+                    const data = await resGet.json();
+                    todosOsAlunos = data.value || {};
+                }
+
+                // PASSO 2: Atualizamos APENAS o saldo do nosso aluno logado
+                todosOsAlunos[state.matricula] = novoSaldo;
+
+                // PASSO 3: Configuramos o pacote para enviar de volta pra API
+                const config = {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        bucket: API_CONFIG.bucket, 
+                        key: API_CONFIG.key, 
+                        value: todosOsAlunos 
+                    })
+                };
+
+                // Enviamos a lista atualizada para o cofre
+                const response = await fetch(API_CONFIG.baseUrl + '/', config);
+                if (!response.ok) throw new Error('Transação recusada pela API');
+                
+                return true; // Sucesso
+            } catch (error) {
+                console.error(error);
+                return false; // Falha
+            }
+        }
+
+        /**
+         * STREAMING_CHUNK: Renderização da Interface (Front-end)...
+         * 3. RENDERIZAÇÃO DA TELA (DOM Manipulation)
+         */
+
+        function renderizarProdutos() {
+            const grid = document.getElementById('produtos-grid');
+            grid.innerHTML = ''; // Limpa os skeletons
+
+            bancoDeProdutos.forEach(produto => {
+                // Criação do HTML do card do produto
+                const html = `
+                    <article class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col">
+                        <div class="relative overflow-hidden">
+                            <img src="${produto.img}" alt="${produto.nome}" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500">
+                            <span class="absolute top-3 left-3 bg-white/90 backdrop-blur text-xs font-bold px-2 py-1 rounded-md text-slate-600 flex items-center gap-1 shadow-sm">
+                                <i class="ph ${produto.icone}"></i> ${produto.cat}
+                            </span>
+                        </div>
+                        <div class="p-5 flex flex-col flex-grow">
+                            <h3 class="font-bold text-slate-900 text-lg mb-1 line-clamp-2">${produto.nome}</h3>
+                            <div class="mt-auto pt-4 flex justify-between items-end">
+                                <div class="flex flex-col">
+                                    <span class="text-xs text-slate-400 font-medium">Preço</span>
+                                    <span class="font-black text-xl text-senai-red">${produto.preco} pts</span>
+                                </div>
+                                <button onclick="adicionarAoCarrinho(${produto.id})" class="w-10 h-10 rounded-full bg-slate-100 text-slate-700 hover:bg-senai-red hover:text-white flex items-center justify-center transition-colors shadow-sm">
+                                    <i class="ph-bold ph-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+                `;
+                // Insere no grid
+                grid.insertAdjacentHTML('beforeend', html);
+            });
+        }
+
+        /**
+         * STREAMING_CHUNK: Lógica do Carrinho e Regras de Negócio...
+         * 4. LÓGICA DE NEGÓCIO E CARRINHO
+         */
+
+        function adicionarAoCarrinho(idProduto) {
+            const produto = bancoDeProdutos.find(p => p.id === idProduto);
+            
+            // Verifica se já existe no carrinho
+            const itemExistente = state.carrinho.find(item => item.id === idProduto);
+            
+            if (itemExistente) {
+                itemExistente.quantidade += 1;
+            } else {
+                state.carrinho.push({ ...produto, quantidade: 1 });
+            }
+
+            atualizarUICarrinho();
+            showToast('Adicionado', `${produto.nome} foi pro carrinho.`, 'success');
+        }
+
+        function removerDoCarrinho(idProduto) {
+            state.carrinho = state.carrinho.filter(item => item.id !== idProduto);
+            atualizarUICarrinho();
+        }
+
+        function calcularTotalCarrinho() {
+            return state.carrinho.reduce((total, item) => total + (item.preco * item.quantidade), 0);
+        }
+
+        async function finalizarCompra() {
+            const total = calcularTotalCarrinho();
+            
+            // Regra 1: Carrinho Vazio?
+            if (total === 0) {
+                showToast('Aviso', 'Seu carrinho está vazio!', 'warning');
+                return;
+            }
+
+            // Regra 2: Saldo Suficiente?
+            if (state.saldo < total) {
+                showToast('Saldo Insuficiente', `Faltam ${total - state.saldo} pts para esta compra.`, 'error');
+                return;
+            }
+
+            // Inicia processo de compra
+            const btn = document.getElementById('btn-finalizar');
+            btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Processando...';
+            btn.disabled = true;
+
+            const novoSaldo = state.saldo - total;
+
+            // Chama a API (POST)
+            const sucesso = await processarTransacaoAPI(novoSaldo);
+
+            if (sucesso) {
+                // Atualiza estado local
+                state.saldo = novoSaldo;
+                state.carrinho = []; // Esvazia carrinho
+                
+                // Atualiza UI
+                atualizarUIMostradorSaldo();
+                atualizarUICarrinho();
+                toggleCarrinho(); // Fecha a gaveta
+                
+                showToast('Compra Aprovada! 🎉', 'Seus itens já estão disponíveis.', 'success');
+            } else {
+                showToast('Falha na Transação', 'A API recusou a compra. Tente novamente.', 'error');
+            }
+
+            // Reseta botão
+            btn.innerHTML = 'Confirmar Resgate';
+            btn.disabled = false;
+        }
+
+        /**
+         * STREAMING_CHUNK: Funções utilitárias de Interface...
+         * 5. FUNÇÕES DE INTERFACE (UI UTILS)
+         */
+
+        function atualizarUIMostradorSaldo() {
+            // Formata com separador de milhar
+            document.getElementById('saldo-display').innerText = state.saldo.toLocaleString('pt-BR') + ' pts';
+        }
+
+        function atualizarUICarrinho() {
+            const container = document.getElementById('carrinho-items');
+            const totalDisplay = document.getElementById('carrinho-total');
+            const badge = document.getElementById('cart-badge');
+            
+            // Atualiza Badge do Header
+            const totalItens = state.carrinho.reduce((acc, item) => acc + item.quantidade, 0);
+            if (totalItens > 0) {
+                badge.innerText = totalItens;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+
+            // Atualiza Total
+            const total = calcularTotalCarrinho();
+            totalDisplay.innerText = total.toLocaleString('pt-BR') + ' pts';
+
+            // Renderiza Itens
+            if (state.carrinho.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-slate-400 mt-10">
+                        <i class="ph ph-shopping-cart text-5xl mb-3 opacity-50"></i>
+                        <p>Seu carrinho está vazio.</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            state.carrinho.forEach(item => {
+                container.innerHTML += `
+                    <div class="flex gap-4 p-3 bg-white rounded-xl border border-slate-100 shadow-sm items-center">
+                        <img src="${item.img}" class="w-16 h-16 object-cover rounded-lg">
+                        <div class="flex-grow">
+                            <h4 class="font-semibold text-sm text-slate-800 line-clamp-1">${item.nome}</h4>
+                            <div class="flex justify-between items-center mt-1">
+                                <span class="text-senai-red font-bold text-sm">${item.preco} pts x ${item.quantidade}</span>
+                            </div>
+                        </div>
+                        <button onclick="removerDoCarrinho(${item.id})" class="text-slate-400 hover:text-red-500 transition-colors p-2">
+                            <i class="ph ph-trash text-lg"></i>
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        function toggleCarrinho() {
+            const drawer = document.getElementById('carrinho-drawer');
+            const overlay = document.getElementById('carrinho-overlay');
+            
+            if (drawer.classList.contains('translate-x-full')) {
+                // Abrir
+                drawer.classList.remove('translate-x-full');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10); // Hack para transição CSS funcionar
+                document.body.style.overflow = 'hidden'; // Impede scroll do fundo
+            } else {
+                // Fechar
+                drawer.classList.add('translate-x-full');
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.classList.add('hidden'), 300); // Espera animação acabar
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // Sistema de Toast Sênior (Notificações)
+        function showToast(titulo, mensagem, tipo = 'success') {
+            const container = document.getElementById('toast-container');
+            const id = 'toast-' + Date.now();
+            
+            let corBase = tipo === 'success' ? 'bg-green-50 text-green-800 border-green-200' : 
+                          tipo === 'error' ? 'bg-red-50 text-red-800 border-red-200' : 
+                          'bg-yellow-50 text-yellow-800 border-yellow-200';
+            
+            let icone = tipo === 'success' ? 'ph-check-circle text-green-500' : 
+                        tipo === 'error' ? 'ph-warning-circle text-red-500' : 
+                        'ph-info text-yellow-500';
+
+            const toastHTML = `
+                <div id="${id}" class="toast-enter pointer-events-auto flex items-start gap-3 p-4 rounded-xl border shadow-lg ${corBase} min-w-[300px] max-w-sm">
+                    <i class="ph-fill ${icone} text-2xl flex-shrink-0 mt-0.5"></i>
+                    <div>
+                        <h4 class="font-bold text-sm">${titulo}</h4>
+                        <p class="text-xs opacity-90 mt-0.5">${mensagem}</p>
+                    </div>
+                    <button onclick="document.getElementById('${id}').remove()" class="ml-auto opacity-50 hover:opacity-100">
+                        <i class="ph ph-x"></i>
+                    </button>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', toastHTML);
+            
+            // Remove automaticamente após 4 segundos
+            setTimeout(() => {
+                const t = document.getElementById(id);
+                if (t) {
+                    t.style.opacity = '0';
+                    t.style.transform = 'translateX(100%)';
+                    t.style.transition = 'all 0.3s ease';
+                    setTimeout(() => t.remove(), 300);
+                }
+            }, 4000);
+        }
+
+        /**
+         * STREAMING_CHUNK: Inicialização do App...
+         * 6. INICIALIZAÇÃO E SESSÃO (LOCALSTORAGE)
+         */
+
+        // NOVO: Função de Login com Persistência
+        async function realizarLogin(matriculaSalva = null) {
+            // Se veio uma matrícula salva, usa ela. Senão, pega do input.
+            let matricula = matriculaSalva;
+            
+            if (!matricula) {
+                const input = document.getElementById('input-matricula');
+                matricula = input.value.trim();
+            }
+
+            if (!matricula) {
+                showToast('Aviso', 'Digite sua matrícula!', 'warning');
+                return;
+            }
+
+            // 1. Salva o aluno no estado da aplicação
+            state.matricula = matricula;
+            
+            // NOVO 2: Salva a matrícula no navegador para a pessoa não ter que logar de novo!
+            localStorage.setItem('@SenaiCoins:matricula', matricula);
+            
+            // 3. Esconde a tela de login (com transição suave)
+            const overlay = document.getElementById('login-overlay');
+            if (overlay) {
+                overlay.style.opacity = '0';
+                // Usamos hidden em vez de remove() para não destruir a tela de login para sempre
+                setTimeout(() => overlay.classList.add('hidden'), 500);
+            }
+
+            // 3.5 Mostra o botão de Sair no cabeçalho
+            const btnLogout = document.getElementById('btn-logout');
+            if (btnLogout) btnLogout.classList.remove('hidden');
+
+            // 4. Busca o saldo e renderiza os produtos
+            showToast('Bem-vindo!', `Conectado como aluno ${matricula}`, 'success');
+            await fetchSaldo();
+            renderizarProdutos();
+        }
+
+        // NOVO: Função para Deslogar (Sair do perfil)
+        function fazerLogout() {
+            // Remove a matrícula do armazenamento do navegador
+            localStorage.removeItem('@SenaiCoins:matricula');
+            // Recarrega a página para voltar à estaca zero
+            window.location.reload();
+        }
+
+        window.onload = () => {
+            // NOVO: Quando a página carrega, verificamos se o aluno já estava logado antes
+            const matriculaGuardada = localStorage.getItem('@SenaiCoins:matricula');
+            
+            if (matriculaGuardada) {
+                // Se achou no localStorage, pula a tela de login e loga direto!
+                realizarLogin(matriculaGuardada);
+            }
+        };
+
     </script>
 </body>
-
 </html>
