@@ -202,8 +202,27 @@
 
             const data = await response.json();
             const produtos = data.value;
-            if (!produtos || typeof produtos !== 'object' || Array.isArray(produtos)) {
+            if (!produtos || typeof produtos !== 'object') {
                 throw new Error('A resposta da API de produtos está em um formato inválido.');
+            }
+
+            if (Array.isArray(produtos)) {
+                const ids = new Set();
+                return produtos.map((produto, index) => {
+                    const id = Number(produto.id);
+                    if (!Number.isSafeInteger(id) || ids.has(id)) {
+                        throw new Error(`ID inválido ou duplicado no produto ${index + 1}.`);
+                    }
+                    if (typeof produto.nome !== 'string' || !produto.nome.trim() ||
+                        !Number.isFinite(Number(produto.preco)) || Number(produto.preco) < 0 ||
+                        typeof produto.img !== 'string' || typeof produto.cat !== 'string' ||
+                        typeof produto.icone !== 'string') {
+                        throw new Error(`Dados inválidos no produto ${index + 1}.`);
+                    }
+
+                    ids.add(id);
+                    return { ...produto, id, preco: Number(produto.preco) };
+                });
             }
 
             return Object.entries(produtos).map(([nome, produto], index) => {
@@ -224,6 +243,7 @@
                     cat: 'Produto',
                     icone: 'ph-package'
                 };
+            });
             });
         }
 
@@ -354,13 +374,18 @@
             bancoDeProdutos.forEach(produto => {
                 const nome = escaparHTML(produto.nome);
                 const imagem = escaparHTML(produto.img);
+            bancoDeProdutos.forEach(produto => {
+                const nome = escaparHTML(produto.nome);
+                const imagem = escaparHTML(produto.img);
+                const categoria = escaparHTML(produto.cat ?? 'Produto');
+                const icone = escaparHTML(produto.icone ?? 'ph-package');
                 // Criação do HTML do card do produto
                 const html = `
                     <article class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col">
                         <div class="relative overflow-hidden">
                             <img src="${imagem}" alt="${nome}" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500">
                             <span class="absolute top-3 left-3 bg-white/90 backdrop-blur text-xs font-bold px-2 py-1 rounded-md text-slate-600 flex items-center gap-1 shadow-sm">
-                                <i class="ph ${produto.icone}"></i> ${produto.cat}
+                                <i class="ph ${icone}"></i> ${categoria}
                             </span>
                         </div>
                         <div class="p-5 flex flex-col flex-grow">
