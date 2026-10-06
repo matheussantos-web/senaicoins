@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SENAI Coins | Loja Oficial</title>
+    
+    <!-- Tailwind para CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonte Inter do Google -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons para ícones modernos -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Configuração de Tema do Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        senai: { red: '#ED1C24', dark: '#111111', hover: '#C4151C' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Esconde a barra de rolagem mas mantém funcionando */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Animação para os Toasts (Notificações) */
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast-enter { animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        
+        /* Animação de Pulse para carregamento (Skeleton) */
+        .skeleton {
+            background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+            background-size: 200% 100%;
+            animation: pulse 1.5s infinite linear;
+        }
+        @keyframes pulse { to { background-position: -200% 0; } }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 flex flex-col min-h-screen">
+
+    <!-- Tela de Login (Ocupa a tela toda por cima da loja) -->
+    <div id="login-overlay" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-4 transition-opacity duration-500">
+        <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center">
+            <div class="w-16 h-16 bg-senai-red rounded-2xl flex items-center justify-center text-white font-bold text-3xl shadow-lg shadow-senai-red/30 mx-auto mb-6">
+                <i class="ph-bold ph-student"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-slate-900 mb-2">Bem-vindo(a) à Loja!</h2>
+            <p class="text-slate-500 mb-8">Por favor, insira sua matrícula para acessar seus SENAI Coins.</p>
+            
+            <form id="login-form" onsubmit="event.preventDefault(); realizarLogin();" class="flex flex-col gap-4">
+                <input type="text" id="input-matricula" placeholder="Digite seu Nome (ex: João Silva)" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-senai-red focus:ring-2 focus:ring-senai-red/20 outline-none transition-all text-center text-lg font-medium">
+                <button type="submit" class="w-full bg-senai-red hover:bg-senai-hover text-white py-3 rounded-xl font-bold text-lg transition-colors flex justify-center items-center gap-2">
+                    Entrar na Loja <i class="ph-bold ph-arrow-right"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <header class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-40 border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex justify-between items-center">
+            
+            <!-- Logo -->
+            <div class="flex items-center gap-3 cursor-pointer">
+                <div class="w-10 h-10 bg-senai-red rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-senai-red/30">
+                    <i class="ph-bold ph-student"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900 leading-tight">SENAI Coins</h1>
+                    <p class="text-xs text-slate-500 font-medium">Loja de Recompensas</p>
+                </div>
+            </div>
+            
+            <!-- Painel do Aluno -->
+            <div class="flex items-center gap-4">
+                <!-- Botão de Logout -->
+                <button onclick="fazerLogout()" id="btn-logout" class="hidden text-sm font-bold text-slate-400 hover:text-senai-red underline transition-colors">
+                    Sair
+                </button>
+                
+                <!-- Mostrador de Saldo -->
+                <div class="bg-slate-100 px-4 py-2 rounded-xl flex items-center gap-2 border border-slate-200 transition-all hover:bg-slate-200">
+                    <i class="ph-fill ph-coin text-yellow-500 text-xl"></i>
+                    <div class="flex flex-col">
+                        <span class="text-[10px] uppercase font-bold text-slate-400 leading-none">Seu Saldo</span>
+                        <span id="saldo-display" class="text-sm font-bold text-slate-800">...</span>
+                    </div>
+                </div>
+
+                <!-- Botão do Carrinho -->
+                <button onclick="toggleCarrinho()" class="relative p-2 text-slate-600 hover:text-senai-red transition-colors">
+                    <i class="ph ph-shopping-cart text-2xl"></i>
+                    <!-- Badge de quantidade no carrinho -->
+                    <span id="cart-badge" class="absolute top-0 right-0 bg-senai-red text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center hidden border-2 border-white">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        <div class="flex justify-between items-end mb-8">
+            <div>
+                <h2 class="text-2xl font-bold text-slate-900">Recompensas em Destaque</h2>
+                <p class="text-slate-500 mt-1">Invista no seu futuro trocando seus pontos por conhecimento e itens.</p>
+            </div>
+        </div>
+        
+        <!-- GRID DE PRODUTOS: Será preenchido pelo JavaScript -->
+        <div id="produtos-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Esqueletos de carregamento (mostrados antes da API responder) -->
+            <article class="bg-white rounded-2xl p-4 h-80 skeleton border border-slate-100"></article>
+            <article class="bg-white rounded-2xl p-4 h-80 skeleton border border-slate-100"></article>
+            <article class="bg-white rounded-2xl p-4 h-80 skeleton border border-slate-100"></article>
+            <article class="bg-white rounded-2xl p-4 h-80 skeleton border border-slate-100"></article>
+        </div>
+    </main>
+
+    <!-- Fundo escuro quando o carrinho abre -->
+    <div id="carrinho-overlay" onclick="toggleCarrinho()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden transition-opacity opacity-0"></div>
+    
+    <!-- Gaveta do Carrinho -->
+    <aside id="carrinho-drawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+        
+        <!-- Header do Carrinho -->
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <h2 class="text-xl font-bold flex items-center gap-2">
+                <i class="ph ph-shopping-bag"></i> Seu Carrinho
+            </h2>
+            <button onclick="toggleCarrinho()" class="p-2 hover:bg-slate-200 rounded-full transition-colors">
+                <i class="ph ph-x text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Itens do Carrinho -->
+        <div id="carrinho-items" class="flex-grow p-6 overflow-y-auto no-scrollbar flex flex-col gap-4">
+            <!-- Preenchido pelo JS -->
+            <div class="text-center text-slate-400 mt-10">
+                <i class="ph ph-shopping-cart text-5xl mb-3 opacity-50"></i>
+                <p>Seu carrinho está vazio.</p>
+            </div>
+        </div>
+
+        <!-- Footer do Carrinho (Total e Botão de Compra) -->
+        <div class="p-6 border-t border-slate-100 bg-white">
+            <div class="flex justify-between items-center mb-6">
+                <span class="text-slate-500 font-medium">Total a pagar:</span>
+                <span id="carrinho-total" class="text-2xl font-bold text-senai-red">0 pts</span>
+            </div>
+            <button id="btn-finalizar" onclick="finalizarCompra()" class="w-full bg-senai-red hover:bg-senai-hover text-white py-4 rounded-xl font-bold text-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                Confirmar Resgate
+            </button>
+        </div>
+    </aside>
+
+    <!-- Container de Notificações (Toasts) -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
+
+    <script>
+        /**
+         * 1. CONFIGURAÇÕES E ESTADO GLOBAL
+         * Em aplicações Sênior, mantemos o estado da aplicação em variáveis claras.
+         */
+        
+        const state = {
+            saldo: 0,
+            carrinho: [], // Guarda os IDs e quantidades
+            isCarregando: false,
+            matricula: null // NOVO: Guarda quem é o aluno logado
+        };
+
+        // NOVO: Configurações do "Banco Central" (Exatamente igual ao do Professor)
+        const API_CONFIG = {
+            baseUrl: 'https://onlinestorage.you.tec.br/api',
+            bucket: 'senai',
+            key: 'coins'
+        };
+
+        const PRODUTOS_API_KEY = 'produtos';
+        let bancoDeProdutos = [];
+
+        function getApiUrlGet(key = API_CONFIG.key) {
+            return `${API_CONFIG.baseUrl}/getkey/${API_CONFIG.bucket}/${key}`;
+        }
+
+        async function fetchProdutos() {
+            const response = await fetch(getApiUrlGet(PRODUTOS_API_KEY), {
+                headers: { 'Accept': 'application/json' }
+            });
+            if (!response.ok) {
+                throw new Error(`Falha ao buscar produtos (HTTP ${response.status}).`);
+            }
+
+            const data = await response.json();
+            if (!Array.isArray(data.value)) {
+                throw new Error('A resposta da API de produtos está em um formato inválido.');
+            }
+
+            const ids = new Set();
+            return data.value.map((produto, index) => {
+                const id = Number(produto.id);
+                if (!Number.isSafeInteger(id) || ids.has(id)) {
+                    throw new Error(`ID inválido ou duplicado no produto ${index + 1}.`);
+                }
+                if (typeof produto.nome !== 'string' || !produto.nome.trim() ||
+                    !Number.isFinite(Number(produto.preco)) || Number(produto.preco) < 0 ||
+                    typeof produto.img !== 'string' || typeof produto.cat !== 'string' ||
+                    typeof produto.icone !== 'string') {
+                    throw new Error(`Dados inválidos no produto ${index + 1}.`);
+                }
+
+                ids.add(id);
+                return { ...produto, id, preco: Number(produto.preco) };
+            });
+        }
+
+        function escaparHTML(valor) {
+            return String(valor).replace(/[&<>"']/g, caractere => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[caractere]);
+        }
+
+        /**
+         * STREAMING_CHUNK: Comunicação com a API (Back-end)...
+         * 2. INTEGRAÇÃO COM API
+         */
+
+        // MÉTDO GET: Busca o saldo
+        async function fetchSaldo() {
+            const display = document.getElementById('saldo-display');
+            display.innerText = 'Carregando...';
+            
+            try {
+                // 1. Vai no Banco Central buscar a lista inteira de todos os alunos
+                const response = await fetch(getApiUrlGet());
+                
+                if (!response.ok) {
+                    state.saldo = 0;
+                    atualizarUIMostradorSaldo();
+                    return;
+                }
+                
+                const data = await response.json();
+                const todosOsAlunos = data.value || {};
+                
+                // NOVA LÓGICA: Busca Case-Insensitive (Ignora Maiúsculas/Minúsculas)
+                // Pega o que o aluno digitou, tira espaços sobrando (trim) e deixa tudo minúsculo (toLowerCase)
+                const nomeDigitado = state.matricula.trim().toLowerCase();
+                
+                let nomeRealNoBanco = null;
+                let saldoEncontrado = 0;
+
+                // Percorre a lista do cofre do professor (Banco)
+                for (const nomeDoAlunoNoBanco in todosOsAlunos) {
+                    // Deixa o nome do banco minúsculo para comparar
+                    if (nomeDoAlunoNoBanco.trim().toLowerCase() === nomeDigitado) {
+                        nomeRealNoBanco = nomeDoAlunoNoBanco; // Achamos! Guarda o nome com a formatação oficial
+                        saldoEncontrado = Number(todosOsAlunos[nomeDoAlunoNoBanco]);
+                        break; // Para de procurar, já achou.
+                    }
+                }
+
+                if (nomeRealNoBanco) {
+                    // Sucesso! Atualiza nossa "memória" para usar o nome oficial do banco nas próximas vezes
+                    state.matricula = nomeRealNoBanco; 
+                    localStorage.setItem('@SenaiCoins:matricula', nomeRealNoBanco); // Salva certinho
+                    state.saldo = saldoEncontrado;
+                } else {
+                    // Se não achou na lista do professor, o saldo é 0 mesmo
+                    state.saldo = 0;
+                    showToast('Conta Nova', 'Você ainda não recebeu pontos do professor.', 'info');
+                }
+                
+                atualizarUIMostradorSaldo();
+                
+            } catch (error) {
+                console.error(error);
+                display.innerText = '0 pts';
+                state.saldo = 0;
+                // Mudamos de erro para um aviso amigável
+                showToast('Carteira Zerada', 'Você ainda não possui pontos no sistema.', 'info');
+            }
+        }
+
+        // MÉTODO POST: Atualiza o saldo no banco de dados (Subtração)
+        async function processarTransacaoAPI(novoSaldo) {
+            try {
+                // PASSO 1: Baixar a lista mais recente do cofre central.
+                // Fazemos isso para não apagarmos por acidente os pontos de outros alunos!
+                const resGet = await fetch(getApiUrlGet());
+                let todosOsAlunos = {};
+                
+                if (resGet.ok) {
+                    const data = await resGet.json();
+                    todosOsAlunos = data.value || {};
+                }
+
+                // PASSO 2: Atualizamos APENAS o saldo do nosso aluno logado
+                todosOsAlunos[state.matricula] = novoSaldo;
+
+                // PASSO 3: Configuramos o pacote para enviar de volta pra API
+                const config = {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        bucket: API_CONFIG.bucket, 
+                        key: API_CONFIG.key, 
+                        value: todosOsAlunos 
+                    })
+                };
+
+                // Enviamos a lista atualizada para o cofre
+                const response = await fetch(API_CONFIG.baseUrl + '/', config);
+                if (!response.ok) throw new Error('Transação recusada pela API');
+                
+                return true; // Sucesso
+            } catch (error) {
+                console.error(error);
+                return false; // Falha
+            }
+        }
+
+        /**
+         * STREAMING_CHUNK: Renderização da Interface (Front-end)...
+         * 3. RENDERIZAÇÃO DA TELA (DOM Manipulation)
+         */
+
+        function renderizarProdutos() {
+            const grid = document.getElementById('produtos-grid');
+            grid.innerHTML = '';
+
+            if (bancoDeProdutos.length === 0) {
+                grid.innerHTML = '<p class="col-span-full text-center text-slate-500 py-12">Nenhum produto disponível no momento.</p>';
+                return;
+            }
+
+            bancoDeProdutos.forEach(produto => {
+                const nome = escaparHTML(produto.nome);
+                const imagem = escaparHTML(produto.img);
+                const categoria = escaparHTML(produto.cat);
+                const icone = escaparHTML(produto.icone);
+                // Criação do HTML do card do produto
+                const html = `
+                    <article class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col">
+                        <div class="relative overflow-hidden">
+                            <img src="${imagem}" alt="${nome}" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500">
+                            <span class="absolute top-3 left-3 bg-white/90 backdrop-blur text-xs font-bold px-2 py-1 rounded-md text-slate-600 flex items-center gap-1 shadow-sm">
+                                <i class="ph ${icone}"></i> ${categoria}
+                            </span>
+                        </div>
+                        <div class="p-5 flex flex-col flex-grow">
+                            <h3 class="font-bold text-slate-900 text-lg mb-1 line-clamp-2">${nome}</h3>
+                            <div class="mt-auto pt-4 flex justify-between items-end">
+                                <div class="flex flex-col">
+                                    <span class="text-xs text-slate-400 font-medium">Preço</span>
+                                    <span class="font-black text-xl text-senai-red">${produto.preco} pts</span>
+                                </div>
+                                <button onclick="adicionarAoCarrinho(${produto.id})" class="w-10 h-10 rounded-full bg-slate-100 text-slate-700 hover:bg-senai-red hover:text-white flex items-center justify-center transition-colors shadow-sm">
+                                    <i class="ph-bold ph-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+                `;
+                // Insere no grid
+                grid.insertAdjacentHTML('beforeend', html);
+            });
+        }
+
+        /**
+         * STREAMING_CHUNK: Lógica do Carrinho e Regras de Negócio...
+         * 4. LÓGICA DE NEGÓCIO E CARRINHO
+         */
+
+        function adicionarAoCarrinho(idProduto) {
+            const produto = bancoDeProdutos.find(p => p.id === idProduto);
+            
+            // Verifica se já existe no carrinho
+            const itemExistente = state.carrinho.find(item => item.id === idProduto);
+            
+            if (itemExistente) {
+                itemExistente.quantidade += 1;
+            } else {
+                state.carrinho.push({ ...produto, quantidade: 1 });
+            }
+
+            atualizarUICarrinho();
+            showToast('Adicionado', `${produto.nome} foi pro carrinho.`, 'success');
+        }
+
+        function removerDoCarrinho(idProduto) {
+            state.carrinho = state.carrinho.filter(item => item.id !== idProduto);
+            atualizarUICarrinho();
+        }
+
+        function calcularTotalCarrinho() {
+            return state.carrinho.reduce((total, item) => total + (item.preco * item.quantidade), 0);
+        }
+
+        async function finalizarCompra() {
+            const total = calcularTotalCarrinho();
+            
+            // Regra 1: Carrinho Vazio?
+            if (total === 0) {
+                showToast('Aviso', 'Seu carrinho está vazio!', 'warning');
+                return;
+            }
+
+            // Regra 2: Saldo Suficiente?
+            if (state.saldo < total) {
+                showToast('Saldo Insuficiente', `Faltam ${total - state.saldo} pts para esta compra.`, 'error');
+                return;
+            }
+
+            // Inicia processo de compra
+            const btn = document.getElementById('btn-finalizar');
+            btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Processando...';
+            btn.disabled = true;
+
+            const novoSaldo = state.saldo - total;
+
+            // Chama a API (POST)
+            const sucesso = await processarTransacaoAPI(novoSaldo);
+
+            if (sucesso) {
+                // Atualiza estado local
+                state.saldo = novoSaldo;
+                state.carrinho = []; // Esvazia carrinho
+                
+                // Atualiza UI
+                atualizarUIMostradorSaldo();
+                atualizarUICarrinho();
+                toggleCarrinho(); // Fecha a gaveta
+                
+                showToast('Compra Aprovada! 🎉', 'Seus itens já estão disponíveis.', 'success');
+            } else {
+                showToast('Falha na Transação', 'A API recusou a compra. Tente novamente.', 'error');
+            }
+
+            // Reseta botão
+            btn.innerHTML = 'Confirmar Resgate';
+            btn.disabled = false;
+        }
+
+        /**
+         * STREAMING_CHUNK: Funções utilitárias de Interface...
+         * 5. FUNÇÕES DE INTERFACE (UI UTILS)
+         */
+
+        function atualizarUIMostradorSaldo() {
+            // Formata com separador de milhar
+            document.getElementById('saldo-display').innerText = state.saldo.toLocaleString('pt-BR') + ' pts';
+        }
+
+        function atualizarUICarrinho() {
+            const container = document.getElementById('carrinho-items');
+            const totalDisplay = document.getElementById('carrinho-total');
+            const badge = document.getElementById('cart-badge');
+            
+            // Atualiza Badge do Header
+            const totalItens = state.carrinho.reduce((acc, item) => acc + item.quantidade, 0);
+            if (totalItens > 0) {
+                badge.innerText = totalItens;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+
+            // Atualiza Total
+            const total = calcularTotalCarrinho();
+            totalDisplay.innerText = total.toLocaleString('pt-BR') + ' pts';
+
+            // Renderiza Itens
+            if (state.carrinho.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-slate-400 mt-10">
+                        <i class="ph ph-shopping-cart text-5xl mb-3 opacity-50"></i>
+                        <p>Seu carrinho está vazio.</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            state.carrinho.forEach(item => {
+                container.innerHTML += `
+                    <div class="flex gap-4 p-3 bg-white rounded-xl border border-slate-100 shadow-sm items-center">
+                        <img src="${item.img}" class="w-16 h-16 object-cover rounded-lg">
+                        <div class="flex-grow">
+                            <h4 class="font-semibold text-sm text-slate-800 line-clamp-1">${item.nome}</h4>
+                            <div class="flex justify-between items-center mt-1">
+                                <span class="text-senai-red font-bold text-sm">${item.preco} pts x ${item.quantidade}</span>
+                            </div>
+                        </div>
+                        <button onclick="removerDoCarrinho(${item.id})" class="text-slate-400 hover:text-red-500 transition-colors p-2">
+                            <i class="ph ph-trash text-lg"></i>
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        function toggleCarrinho() {
+            const drawer = document.getElementById('carrinho-drawer');
+            const overlay = document.getElementById('carrinho-overlay');
+            
+            if (drawer.classList.contains('translate-x-full')) {
+                // Abrir
+                drawer.classList.remove('translate-x-full');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10); // Hack para transição CSS funcionar
+                document.body.style.overflow = 'hidden'; // Impede scroll do fundo
+            } else {
+                // Fechar
+                drawer.classList.add('translate-x-full');
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.classList.add('hidden'), 300); // Espera animação acabar
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // Sistema de Toast Sênior (Notificações)
+        function showToast(titulo, mensagem, tipo = 'success') {
+            const container = document.getElementById('toast-container');
+            const id = 'toast-' + Date.now();
+            
+            let corBase = tipo === 'success' ? 'bg-green-50 text-green-800 border-green-200' : 
+                          tipo === 'error' ? 'bg-red-50 text-red-800 border-red-200' : 
+                          'bg-yellow-50 text-yellow-800 border-yellow-200';
+            
+            let icone = tipo === 'success' ? 'ph-check-circle text-green-500' : 
+                        tipo === 'error' ? 'ph-warning-circle text-red-500' : 
+                        'ph-info text-yellow-500';
+
+            const toastHTML = `
+                <div id="${id}" class="toast-enter pointer-events-auto flex items-start gap-3 p-4 rounded-xl border shadow-lg ${corBase} min-w-[300px] max-w-sm">
+                    <i class="ph-fill ${icone} text-2xl flex-shrink-0 mt-0.5"></i>
+                    <div>
+                        <h4 class="font-bold text-sm">${titulo}</h4>
+                        <p class="text-xs opacity-90 mt-0.5">${mensagem}</p>
+                    </div>
+                    <button onclick="document.getElementById('${id}').remove()" class="ml-auto opacity-50 hover:opacity-100">
+                        <i class="ph ph-x"></i>
+                    </button>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', toastHTML);
+            
+            // Remove automaticamente após 4 segundos
+            setTimeout(() => {
+                const t = document.getElementById(id);
+                if (t) {
+                    t.style.opacity = '0';
+                    t.style.transform = 'translateX(100%)';
+                    t.style.transition = 'all 0.3s ease';
+                    setTimeout(() => t.remove(), 300);
+                }
+            }, 4000);
+        }
+
+        /**
+         * STREAMING_CHUNK: Inicialização do App...
+         * 6. INICIALIZAÇÃO E SESSÃO (LOCALSTORAGE)
+         */
+
+        // NOVO: Função de Login com Persistência
+        async function realizarLogin(matriculaSalva = null) {
+            // Se veio uma matrícula salva, usa ela. Senão, pega do input.
+            let matricula = matriculaSalva;
+            
+            if (!matricula) {
+                const input = document.getElementById('input-matricula');
+                matricula = input.value.trim();
+            }
+
+            if (!matricula) {
+                showToast('Aviso', 'Digite sua matrícula!', 'warning');
+                return;
+            }
+
+            // 1. Salva o aluno no estado da aplicação
+            state.matricula = matricula;
+            
+            // NOVO 2: Salva a matrícula no navegador para a pessoa não ter que logar de novo!
+            localStorage.setItem('@SenaiCoins:matricula', matricula);
+            
+            // 3. Esconde a tela de login (com transição suave)
+            const overlay = document.getElementById('login-overlay');
+            if (overlay) {
+                overlay.style.opacity = '0';
+                // Usamos hidden em vez de remove() para não destruir a tela de login para sempre
+                setTimeout(() => overlay.classList.add('hidden'), 500);
+            }
+
+            // 3.5 Mostra o botão de Sair no cabeçalho
+            const btnLogout = document.getElementById('btn-logout');
+            if (btnLogout) btnLogout.classList.remove('hidden');
+
+            // 4. Busca o saldo e renderiza os produtos
+            showToast('Bem-vindo!', `Conectado como aluno ${matricula}`, 'success');
+            await Promise.all([fetchSaldo(), fetchProdutos().then(produtos => {
+                bancoDeProdutos = produtos;
+                renderizarProdutos();
+            }).catch(error => {
+                console.error('Erro ao carregar produtos:', error);
+                document.getElementById('produtos-grid').innerHTML = `
+                    <p class="col-span-full text-center text-red-600 py-12">
+                        Não foi possível carregar os produtos. Tente atualizar a página.
+                    </p>`;
+                showToast('Erro ao carregar produtos', error.message, 'error');
+            })]);
+        }
+
+        // NOVO: Função para Deslogar (Sair do perfil)
+        function fazerLogout() {
+            // Remove a matrícula do armazenamento do navegador
+            localStorage.removeItem('@SenaiCoins:matricula');
+            // Recarrega a página para voltar à estaca zero
+            window.location.reload();
+        }
+
+        window.onload = () => {
+            // NOVO: Quando a página carrega, verificamos se o aluno já estava logado antes
+            const matriculaGuardada = localStorage.getItem('@SenaiCoins:matricula');
+            
+            if (matriculaGuardada) {
+                // Se achou no localStorage, pula a tela de login e loga direto!
+                realizarLogin(matriculaGuardada);
+            }
+        };
+
+    </script>
+</body>
+</html>
