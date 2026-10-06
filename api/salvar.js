@@ -24,7 +24,7 @@ export default async function handler(req, res) {
         });
 
         const dados = await respostaApi.json();
-        return res.status(200).json(dados);
+        return res.status(respostaApi.status).json(dados);
     } catch (erro) {
         return res.status(500).json({ erro: 'Erro ao comunicar com a API externa.' });
     }

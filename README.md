@@ -11,6 +11,7 @@ Sistema simples e direto para gerenciamento e atribuição de moedas/pontos aos 
 - **Área Restrita do Professor**:
   - Operações práticas de **Adicionar (+)**, **Subtrair (-)** ou **Definir Saldo Exato**.
   - **Atalhos rápidos** de pontuação (`+5`, `+10`, `+20`, `+50`) para agilizar durante a aula.
+  - **Histórico de movimentações** por aluno, com data, tipo, variação de pontos e descrição opcional.
   - **Filtro de busca**: Encontre qualquer aluno instantaneamente digitando o nome.
   - **Seleção com 1 clique**: Clique diretamente sobre o aluno na lista para selecioná-lo no painel.
   - **Lembrar senha**: Opção de salvar a senha de admin no navegador local (`localStorage`) para não precisar redigitar a cada aula.
@@ -24,7 +25,7 @@ Sistema simples e direto para gerenciamento e atribuição de moedas/pontos aos 
 - **Frontend**: HTML5, CSS3 moderno, [Vue.js 3](https://vuejs.org/) (via CDN)
 - **Backend / Serverless**: Node.js na [Vercel Functions](https://vercel.com/docs/functions)
 - **Banco de Dados**: [Supabase](https://supabase.com/) (leitura da lista de alunos)
-- **Armazenamento em Nuvem**: API *FreeOnlineStorage* (Bucket: `senai`, Chave: `coins`)
+- **Armazenamento em Nuvem**: API *FreeOnlineStorage* (Bucket: `senai`, Chaves: `coins` e `coin-history`)
 
 ---
 
