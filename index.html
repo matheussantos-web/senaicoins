@@ -372,7 +372,6 @@
                         exibirMensagem(e.message || "Erro ao atualizar os dados.", "erro")
                     } finally { carregando.value = false }
                 }
-                }
 
                 async function aplicarOperacao(tipo, valorAtalho = null) {
                     if (!adminAuth.value) { exibirMensagem("Preencha a senha do professor!", "erro"); return }
