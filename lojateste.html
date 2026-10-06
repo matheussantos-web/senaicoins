@@ -185,53 +185,20 @@
             key: 'coins'
         };
 
-        const PRODUTOS_API_KEY = 'produtos';
-        let bancoDeProdutos = [];
-
-        function getApiUrlGet(key = API_CONFIG.key) {
-            return `${API_CONFIG.baseUrl}/getkey/${API_CONFIG.bucket}/${key}`;
+        function getApiUrlGet() {
+            return `${API_CONFIG.baseUrl}/getkey/${API_CONFIG.bucket}/${API_CONFIG.key}`;
         }
 
-        async function fetchProdutos() {
-            const response = await fetch(getApiUrlGet(PRODUTOS_API_KEY), {
-                headers: { 'Accept': 'application/json' }
-            });
-            if (!response.ok) {
-                throw new Error(`Falha ao buscar produtos (HTTP ${response.status}).`);
-            }
-
-            const data = await response.json();
-            if (!Array.isArray(data.value)) {
-                throw new Error('A resposta da API de produtos está em um formato inválido.');
-            }
-
-            const ids = new Set();
-            return data.value.map((produto, index) => {
-                const id = Number(produto.id);
-                if (!Number.isSafeInteger(id) || ids.has(id)) {
-                    throw new Error(`ID inválido ou duplicado no produto ${index + 1}.`);
-                }
-                if (typeof produto.nome !== 'string' || !produto.nome.trim() ||
-                    !Number.isFinite(Number(produto.preco)) || Number(produto.preco) < 0 ||
-                    typeof produto.img !== 'string' || typeof produto.cat !== 'string' ||
-                    typeof produto.icone !== 'string') {
-                    throw new Error(`Dados inválidos no produto ${index + 1}.`);
-                }
-
-                ids.add(id);
-                return { ...produto, id, preco: Number(produto.preco) };
-            });
-        }
-
-        function escaparHTML(valor) {
-            return String(valor).replace(/[&<>"']/g, caractere => ({
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#39;'
-            })[caractere]);
-        }
+        // Simulação de um Banco de Dados de Produtos
+        // Na vida real, isso também viria de um GET em uma API de produtos.
+        const bancoDeProdutos = [
+            { id: 1, nome: "Camiseta Oficial SENAI", preco: 150, img: "https://placehold.co/600x400/ED1C24/FFF?text=Camiseta", cat: "Vestuário", icone: "ph-t-shirt" },
+            { id: 2, nome: "Curso AWS Cloud Practitioner", preco: 500, img: "https://placehold.co/600x400/232F3E/FFF?text=AWS", cat: "Cursos", icone: "ph-cloud" },
+            { id: 3, nome: "Garrafa Térmica Tech", preco: 120, img: "https://placehold.co/600x400/111111/FFF?text=Garrafa", cat: "Acessórios", icone: "ph-drop" },
+            { id: 4, nome: "Mousepad Extra Grande", preco: 80, img: "https://placehold.co/600x400/4B5563/FFF?text=Mousepad", cat: "Setup", icone: "ph-mouse" },
+            { id: 5, nome: "Mentoria de Carreira (1h)", preco: 300, img: "https://placehold.co/600x400/8B5CF6/FFF?text=Mentoria", cat: "Serviços", icone: "ph-chalkboard-teacher" },
+            { id: 6, nome: "Caderno Inteligente", preco: 90, img: "https://placehold.co/600x400/10B981/FFF?text=Caderno", cat: "Papelaria", icone: "ph-book-open" }
+        ];
 
         /**
          * STREAMING_CHUNK: Comunicação com a API (Back-end)...
@@ -340,29 +307,20 @@
 
         function renderizarProdutos() {
             const grid = document.getElementById('produtos-grid');
-            grid.innerHTML = '';
-
-            if (bancoDeProdutos.length === 0) {
-                grid.innerHTML = '<p class="col-span-full text-center text-slate-500 py-12">Nenhum produto disponível no momento.</p>';
-                return;
-            }
+            grid.innerHTML = ''; // Limpa os skeletons
 
             bancoDeProdutos.forEach(produto => {
-                const nome = escaparHTML(produto.nome);
-                const imagem = escaparHTML(produto.img);
-                const categoria = escaparHTML(produto.cat);
-                const icone = escaparHTML(produto.icone);
                 // Criação do HTML do card do produto
                 const html = `
                     <article class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col">
                         <div class="relative overflow-hidden">
-                            <img src="${imagem}" alt="${nome}" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500">
+                            <img src="${produto.img}" alt="${produto.nome}" class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500">
                             <span class="absolute top-3 left-3 bg-white/90 backdrop-blur text-xs font-bold px-2 py-1 rounded-md text-slate-600 flex items-center gap-1 shadow-sm">
-                                <i class="ph ${icone}"></i> ${categoria}
+                                <i class="ph ${produto.icone}"></i> ${produto.cat}
                             </span>
                         </div>
                         <div class="p-5 flex flex-col flex-grow">
-                            <h3 class="font-bold text-slate-900 text-lg mb-1 line-clamp-2">${nome}</h3>
+                            <h3 class="font-bold text-slate-900 text-lg mb-1 line-clamp-2">${produto.nome}</h3>
                             <div class="mt-auto pt-4 flex justify-between items-end">
                                 <div class="flex flex-col">
                                     <span class="text-xs text-slate-400 font-medium">Preço</span>
@@ -611,17 +569,8 @@
 
             // 4. Busca o saldo e renderiza os produtos
             showToast('Bem-vindo!', `Conectado como aluno ${matricula}`, 'success');
-            await Promise.all([fetchSaldo(), fetchProdutos().then(produtos => {
-                bancoDeProdutos = produtos;
-                renderizarProdutos();
-            }).catch(error => {
-                console.error('Erro ao carregar produtos:', error);
-                document.getElementById('produtos-grid').innerHTML = `
-                    <p class="col-span-full text-center text-red-600 py-12">
-                        Não foi possível carregar os produtos. Tente atualizar a página.
-                    </p>`;
-                showToast('Erro ao carregar produtos', error.message, 'error');
-            })]);
+            await fetchSaldo();
+            renderizarProdutos();
         }
 
         // NOVO: Função para Deslogar (Sair do perfil)
