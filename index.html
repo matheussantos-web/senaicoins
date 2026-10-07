@@ -146,7 +146,7 @@
                 <div class="mb-4">
                     <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Pontuacao rapida:</div>
                     <div class="flex flex-wrap gap-2">
-                        <button v-for="qtd in [100, 200, 300]" :key="qtd"
+                        <button v-for="qtd in [25, 50, 100, 200, 300]" :key="qtd"
                                 @click="aplicarOperacao('somar', qtd)" :disabled="carregando"
                                 class="px-3 py-1.5 rounded-full text-xs font-bold border bg-white transition active:scale-95 disabled:opacity-50 hover:text-white"
                                 style="border-color:#004B87;color:#004B87"
