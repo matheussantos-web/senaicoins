@@ -30,6 +30,7 @@
     <style>
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { display: inline-block; animation: spin 0.8s linear infinite; }
+
     </style>
 </head>
 
@@ -39,14 +40,12 @@
         <!-- CABECALHO INSTITUCIONAL FIRJAN SENAI -->
         <header class="flex items-center gap-4 px-5 py-4 rounded-xl border-b-4 border-senai-red"
                 style="background: linear-gradient(135deg, #002D5A 0%, #004B87 100%);">
-            <!-- Icone S-Coin estilo USDC -->
-            <div class="rounded-full border-[3px] border-white/50 flex items-center justify-center flex-shrink-0 ring-4 ring-white/10"
-                 style="width:52px;height:52px;background:#004B87;">
-                <span class="text-white font-black text-2xl leading-none">S</span>
+            <div class="w-[62px] h-[62px] p-[3px] flex-shrink-0 rounded-full bg-gradient-to-br from-[#0d5ea9] to-[#004B87] border-2 border-white/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_4px_12px_rgba(0,0,0,0.18)] flex items-center justify-center overflow-hidden" aria-label="Logo SENAICOINS">
+                <img src="https://eempgprspimlhzlofvjx.supabase.co/storage/v1/object/public/icones/logo%20senai%20coins.png" alt="Logo SENAICOINS" class="w-[115%] h-[115%] max-w-none flex-shrink-0 object-contain translate-y-px drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]">
             </div>
-            <div class="flex-1">
-                <h1 class="text-white font-extrabold text-xl tracking-wide">SENAICOINS</h1>
-                <p class="text-white/70 text-xs mt-0.5">Painel do Professor - Atribuicao de S-Coins</p>
+            <div class="flex-1 min-w-0">
+                <h1 class="text-white font-extrabold text-xl tracking-wide leading-tight">SENAICOINS</h1>
+                <p class="text-white/70 text-xs mt-0.5 leading-snug">Painel do Professor - Atribuicao de S-Coins</p>
             </div>
             <span class="text-[11px] font-bold tracking-widest uppercase text-white/80 bg-white/10 border border-white/20 px-3 py-1 rounded-full self-start">
                 FIRJAN SENAI
