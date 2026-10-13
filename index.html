@@ -226,13 +226,12 @@
             setup() {
                 const baseUrl = "https://onlinestorage.you.tec.br/api"
                 const bucket = "senai"
-                const key = "coins"
+                const key = "coinsnew"
                 const historyKey = "coin-history"
-                const supabaseUrl = "https://eempgprspimlhzlofvjx.supabase.co"
-                const supabaseKey = "sb_publishable_H8eepB7xyJndr_TdsvuiVw_pJbsPC5k"
 
-                const alunosComCurriculo = ref([])
-                const moedas = ref({})
+                const usuarios = ref([])
+                const alunosComCurriculo = computed(() => usuarios.value.map(usuario => usuario.nome))
+                const moedas = computed(() => Object.fromEntries(usuarios.value.map(usuario => [usuario.nome, usuario.coins])))
                 const historico = ref({})
                 const termoBusca = ref("")
                 const alunoAlterar = ref("")
@@ -299,20 +298,16 @@
 
                 function selecionarAluno(aluno) { alunoAlterar.value = aluno }
 
-                async function buscarAlunosSupabase() {
-                    try {
-                        const r = await fetch(supabaseUrl + "/rest/v1/aluno?select=nome", {
-                            headers: { "apikey": supabaseKey, "Authorization": "Bearer " + supabaseKey, "Accept": "application/json" }
-                        })
-                        if (r.ok) { const d = await r.json(); alunosComCurriculo.value = d.map(i => i.nome) }
-                    } catch (e) { console.error(e) }
-                }
-
                 async function buscarMoedas() {
                     const r = await fetch(baseUrl + "/getkey/" + bucket + "/" + key, { headers: { "Accept": "application/json" } })
                     if (!r.ok) throw new Error("Não foi possível carregar os saldos.")
                     const d = await r.json()
-                    moedas.value = d.value || {}
+                    if (!Array.isArray(d.value?.usuarios) || d.value.usuarios.some(usuario =>
+                        !usuario || typeof usuario.nome !== "string" || !Number.isFinite(usuario.coins)
+                    )) {
+                        throw new Error("A lista de usuários no armazenamento está em um formato inválido.")
+                    }
+                    usuarios.value = d.value.usuarios
                 }
 
                 async function buscarHistorico() {
@@ -350,21 +345,10 @@
                     historico.value = dadosHistorico
                 }
 
-                async function sincronizarAlunosNaApi() {
-                    let dados = { ...moedas.value }; let alt = false
-                    for (const a of alunosComCurriculo.value) { if (dados[a] === undefined) { dados[a] = 0; alt = true } }
-                    if (alt) {
-                        try {
-                            await fetch(baseUrl + "/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bucket, key, value: dados }) })
-                            moedas.value = dados
-                        } catch (e) {}
-                    }
-                }
-
                 async function atualizarTudo() {
                     carregando.value = true; exibirMensagem("Sincronizando...", "info")
                     try {
-                        await buscarAlunosSupabase(); await buscarMoedas(); await buscarHistorico(); await sincronizarAlunosNaApi()
+                        await buscarMoedas(); await buscarHistorico()
                         exibirMensagem("Dados atualizados!", "sucesso")
                     } catch (e) {
                         console.error(e)
@@ -389,13 +373,15 @@
                     }
                     try {
                         await buscarMoedas()
-                        let dados = { ...moedas.value }
-                        const atual = Number(dados[aluno] || 0)
+                        const indiceUsuario = usuarios.value.findIndex(usuario => usuario.nome === aluno)
+                        if (indiceUsuario < 0) throw new Error("Aluno não encontrado na lista de usuários.")
+                        const usuariosAtualizados = usuarios.value.map(usuario => ({ ...usuario }))
+                        const atual = usuariosAtualizados[indiceUsuario].coins
                         const novo = tipo === 'somar' ? atual + valor : Math.max(0, atual - valor)
-                        dados[aluno] = novo
-                        const r = await fetch('/api/salvar', { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ senhaDigitada: adminAuth.value, bucket, key, value: dados }) })
+                        usuariosAtualizados[indiceUsuario].coins = novo
+                        const r = await fetch('/api/salvar', { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ senhaDigitada: adminAuth.value, bucket, key, value: { usuarios: usuariosAtualizados } }) })
                         if (r.ok) {
-                            salvarSenhaSeNecessario(); moedas.value = dados
+                            salvarSenhaSeNecessario(); usuarios.value = usuariosAtualizados
                             const d = novo - atual
                             try {
                                 await salvarMovimentacao(aluno, tipo, d, descricao)
@@ -424,11 +410,14 @@
                     }
                     try {
                         await buscarMoedas()
-                        let dados = { ...moedas.value }; dados[aluno] = 0
-                        const variacao = -Number(moedas.value[aluno] || 0)
-                        const r = await fetch('/api/salvar', { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ senhaDigitada: adminAuth.value, bucket, key, value: dados }) })
+                        const indiceUsuario = usuarios.value.findIndex(usuario => usuario.nome === aluno)
+                        if (indiceUsuario < 0) throw new Error("Aluno não encontrado na lista de usuários.")
+                        const usuariosAtualizados = usuarios.value.map(usuario => ({ ...usuario }))
+                        const variacao = -usuariosAtualizados[indiceUsuario].coins
+                        usuariosAtualizados[indiceUsuario].coins = 0
+                        const r = await fetch('/api/salvar', { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ senhaDigitada: adminAuth.value, bucket, key, value: { usuarios: usuariosAtualizados } }) })
                         if (r.ok) {
-                            salvarSenhaSeNecessario(); moedas.value = dados
+                            salvarSenhaSeNecessario(); usuarios.value = usuariosAtualizados
                             try {
                                 await salvarMovimentacao(aluno, "zerar", variacao, descricao)
                                 descricaoMovimentacao.value = ""
